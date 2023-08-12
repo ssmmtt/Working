@@ -19,6 +19,7 @@ namespace Working
                 config.WriteKey("auto_run", "true");
                 config.WriteKey("start_time", "0:00:00");
                 config.WriteKey("end_time", "23:59:59");
+                config.WriteKey("auto_mini", "true");
             }
 
             string autoRun = config.ReadKey("auto_run");
@@ -36,6 +37,14 @@ namespace Working
             dateTimePicker1.Value = startTime;
             dateTimePicker2.Value = endTime;
 
+            string autoMini = config.ReadKey("auto_mini");
+
+            if (autoMini == "true")
+            {
+                // 将窗口最小化到托盘
+                this.WindowState = FormWindowState.Minimized;
+                this.ShowInTaskbar = false;
+            }
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -62,9 +71,13 @@ namespace Working
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            // 重复一次恢复按键状态
-            wake_up();
-            wake_up();
+            DateTime currentTime = DateTime.Now;
+            if (currentTime.TimeOfDay >= startTime.TimeOfDay && currentTime.TimeOfDay <= endTime.TimeOfDay)
+            {
+                // 重复一次恢复按键状态
+                wake_up();
+                wake_up();
+            }
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -77,6 +90,8 @@ namespace Working
         {
             if (e.Button == MouseButtons.Left)
             {
+                this.WindowState = FormWindowState.Normal;
+                this.ShowInTaskbar = true;
                 this.Show();
                 this.Activate();
             }
@@ -92,14 +107,14 @@ namespace Working
         {
             startTime = DateTime.ParseExact(dateTimePicker1.Text, "H:mm:ss", CultureInfo.InvariantCulture);
             config.WriteKey("start_time", startTime.ToLongTimeString());
+            label1.Focus();
         }
 
         private void dateTimePicker2_TextChanged(object sender, EventArgs e)
         {
             endTime = DateTime.ParseExact(dateTimePicker2.Text, "H:mm:ss", CultureInfo.InvariantCulture);
             config.WriteKey("end_time", endTime.ToLongTimeString());
+            label1.Focus();
         }
-
-
     }
 }

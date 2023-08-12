@@ -61,7 +61,7 @@ namespace Working
             // 
             // timer1
             // 
-            timer1.Interval = 180000;
+            timer1.Interval = 5000;
             timer1.Tick += timer1_Tick;
             // 
             // label1
@@ -161,6 +161,8 @@ namespace Working
             Controls.Add(button1);
             Icon = Properties.Resources.work_off;
             MaximizeBox = false;
+            MaximumSize = new Size(475, 332);
+            MinimumSize = new Size(475, 332);
             Name = "Form1";
             Text = "Working";
             FormClosing += Form1_FormClosing;
