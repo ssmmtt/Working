@@ -61,16 +61,17 @@ namespace Working
             // 
             // timer1
             // 
-            timer1.Interval = 5000;
+            timer1.Interval = 180000;
             timer1.Tick += timer1_Tick;
             // 
             // label1
             // 
             label1.Font = new Font("Microsoft YaHei UI", 30F, FontStyle.Regular, GraphicsUnit.Point);
             label1.ForeColor = Color.Red;
-            label1.Location = new Point(-3, 209);
+            label1.Location = new Point(-4, 246);
+            label1.Margin = new Padding(4, 0, 4, 0);
             label1.Name = "label1";
-            label1.Size = new Size(461, 55);
+            label1.Size = new Size(593, 65);
             label1.TabIndex = 1;
             label1.Text = "状态：已关闭";
             label1.TextAlign = ContentAlignment.MiddleCenter;
@@ -79,9 +80,10 @@ namespace Working
             // 
             button1.Font = new Font("Microsoft YaHei UI", 50F, FontStyle.Regular, GraphicsUnit.Point);
             button1.ForeColor = SystemColors.MenuHighlight;
-            button1.Location = new Point(35, 7);
+            button1.Location = new Point(45, 8);
+            button1.Margin = new Padding(4, 4, 4, 4);
             button1.Name = "button1";
-            button1.Size = new Size(392, 151);
+            button1.Size = new Size(504, 178);
             button1.TabIndex = 0;
             button1.Text = "不休眠";
             button1.UseVisualStyleBackColor = true;
@@ -97,14 +99,15 @@ namespace Working
             // 
             // contextMenuStrip1
             // 
+            contextMenuStrip1.ImageScalingSize = new Size(20, 20);
             contextMenuStrip1.Items.AddRange(new ToolStripItem[] { 退出ToolStripMenuItem });
             contextMenuStrip1.Name = "contextMenuStrip1";
-            contextMenuStrip1.Size = new Size(101, 26);
+            contextMenuStrip1.Size = new Size(109, 28);
             // 
             // 退出ToolStripMenuItem
             // 
             退出ToolStripMenuItem.Name = "退出ToolStripMenuItem";
-            退出ToolStripMenuItem.Size = new Size(100, 22);
+            退出ToolStripMenuItem.Size = new Size(108, 24);
             退出ToolStripMenuItem.Text = "退出";
             退出ToolStripMenuItem.Click += 退出ToolStripMenuItem_Click;
             // 
@@ -112,28 +115,31 @@ namespace Working
             // 
             dateTimePicker1.CustomFormat = "";
             dateTimePicker1.Format = DateTimePickerFormat.Time;
-            dateTimePicker1.Location = new Point(109, 169);
+            dateTimePicker1.Location = new Point(137, 200);
+            dateTimePicker1.Margin = new Padding(4, 4, 4, 4);
             dateTimePicker1.Name = "dateTimePicker1";
             dateTimePicker1.ShowUpDown = true;
-            dateTimePicker1.Size = new Size(117, 23);
+            dateTimePicker1.Size = new Size(149, 27);
             dateTimePicker1.TabIndex = 2;
             dateTimePicker1.TextChanged += dateTimePicker1_TextChanged;
             // 
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(35, 174);
+            label2.Location = new Point(45, 205);
+            label2.Margin = new Padding(4, 0, 4, 0);
             label2.Name = "label2";
-            label2.Size = new Size(68, 17);
+            label2.Size = new Size(84, 20);
             label2.TabIndex = 3;
             label2.Text = "开始时间：";
             // 
             // label3
             // 
             label3.AutoSize = true;
-            label3.Location = new Point(236, 173);
+            label3.Location = new Point(308, 205);
+            label3.Margin = new Padding(4, 0, 4, 0);
             label3.Name = "label3";
-            label3.Size = new Size(68, 17);
+            label3.Size = new Size(84, 20);
             label3.TabIndex = 5;
             label3.Text = "结束时间：";
             // 
@@ -141,18 +147,19 @@ namespace Working
             // 
             dateTimePicker2.CustomFormat = "";
             dateTimePicker2.Format = DateTimePickerFormat.Time;
-            dateTimePicker2.Location = new Point(310, 168);
+            dateTimePicker2.Location = new Point(400, 200);
+            dateTimePicker2.Margin = new Padding(4, 4, 4, 4);
             dateTimePicker2.Name = "dateTimePicker2";
             dateTimePicker2.ShowUpDown = true;
-            dateTimePicker2.Size = new Size(117, 23);
+            dateTimePicker2.Size = new Size(149, 27);
             dateTimePicker2.TabIndex = 4;
             dateTimePicker2.TextChanged += dateTimePicker2_TextChanged;
             // 
             // Form1
             // 
-            AutoScaleDimensions = new SizeF(7F, 17F);
+            AutoScaleDimensions = new SizeF(9F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(459, 293);
+            ClientSize = new Size(588, 335);
             Controls.Add(label3);
             Controls.Add(dateTimePicker2);
             Controls.Add(label2);
@@ -160,9 +167,10 @@ namespace Working
             Controls.Add(label1);
             Controls.Add(button1);
             Icon = Properties.Resources.work_off;
+            Margin = new Padding(4, 4, 4, 4);
             MaximizeBox = false;
-            MaximumSize = new Size(475, 332);
-            MinimumSize = new Size(475, 332);
+            MaximumSize = new Size(606, 382);
+            MinimumSize = new Size(606, 382);
             Name = "Form1";
             Text = "Working";
             FormClosing += Form1_FormClosing;
