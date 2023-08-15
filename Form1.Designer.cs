@@ -81,11 +81,11 @@ namespace Working
             button1.Font = new Font("Microsoft YaHei UI", 50F, FontStyle.Regular, GraphicsUnit.Point);
             button1.ForeColor = SystemColors.MenuHighlight;
             button1.Location = new Point(45, 8);
-            button1.Margin = new Padding(4, 4, 4, 4);
+            button1.Margin = new Padding(4);
             button1.Name = "button1";
             button1.Size = new Size(504, 178);
             button1.TabIndex = 0;
-            button1.Text = "不休眠";
+            button1.Text = "Working";
             button1.UseVisualStyleBackColor = true;
             button1.Click += button1_Click;
             // 
@@ -116,7 +116,7 @@ namespace Working
             dateTimePicker1.CustomFormat = "";
             dateTimePicker1.Format = DateTimePickerFormat.Time;
             dateTimePicker1.Location = new Point(137, 200);
-            dateTimePicker1.Margin = new Padding(4, 4, 4, 4);
+            dateTimePicker1.Margin = new Padding(4);
             dateTimePicker1.Name = "dateTimePicker1";
             dateTimePicker1.ShowUpDown = true;
             dateTimePicker1.Size = new Size(149, 27);
@@ -148,7 +148,7 @@ namespace Working
             dateTimePicker2.CustomFormat = "";
             dateTimePicker2.Format = DateTimePickerFormat.Time;
             dateTimePicker2.Location = new Point(400, 200);
-            dateTimePicker2.Margin = new Padding(4, 4, 4, 4);
+            dateTimePicker2.Margin = new Padding(4);
             dateTimePicker2.Name = "dateTimePicker2";
             dateTimePicker2.ShowUpDown = true;
             dateTimePicker2.Size = new Size(149, 27);
@@ -167,7 +167,7 @@ namespace Working
             Controls.Add(label1);
             Controls.Add(button1);
             Icon = Properties.Resources.work_off;
-            Margin = new Padding(4, 4, 4, 4);
+            Margin = new Padding(4);
             MaximizeBox = false;
             MaximumSize = new Size(606, 382);
             MinimumSize = new Size(606, 382);
