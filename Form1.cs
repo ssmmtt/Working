@@ -5,14 +5,14 @@ namespace Working
 {
     public partial class Form1 : Form
     {
-        public static IniConfig config;                       //ÅäÖÃÎÄ¼ş
+        public static IniConfig config;                       //é…ç½®æ–‡ä»¶
         public static DateTime startTime;
         public static DateTime endTime;
 
         public Form1()
         {
             InitializeComponent();
-            // ÅĞ¶ÏÅäÖÃÎÄ¼şÊÇ·ñ´æÔÚ
+            // åˆ¤æ–­é…ç½®æ–‡ä»¶æ˜¯å¦å­˜åœ¨
             config = new IniConfig(AppDomain.CurrentDomain.SetupInformation.ApplicationBase + "config.ini");
             if (!config.FileExist())
             {
@@ -27,7 +27,7 @@ namespace Working
             if (autoRun == "true")
             {
                 timer1.Start();
-                label1.Text = "×´Ì¬£ºÒÑ´ò¿ª";
+                label1.Text = "çŠ¶æ€ï¼šå·²æ‰“å¼€";
                 this.notifyIcon1.Icon = Properties.Resources.work_on;
             }
 
@@ -41,7 +41,7 @@ namespace Working
 
             if (autoMini == "true")
             {
-                // ½«´°¿Ú×îĞ¡»¯µ½ÍĞÅÌ
+                // å°†çª—å£æœ€å°åŒ–åˆ°æ‰˜ç›˜
                 this.WindowState = FormWindowState.Minimized;
                 this.ShowInTaskbar = false;
             }
@@ -52,17 +52,17 @@ namespace Working
             bool enabled = timer1.Enabled;
             if (enabled)
             {
-                // ´ò¿ª×´Ì¬£¬¹Ø±Õ
+                // æ‰“å¼€çŠ¶æ€ï¼Œå…³é—­
                 timer1.Stop();
-                label1.Text = "×´Ì¬£ºÒÑ¹Ø±Õ";
+                label1.Text = "çŠ¶æ€ï¼šå·²å…³é—­";
                 config.WriteKey("auto_run", "false");
                 this.notifyIcon1.Icon = Properties.Resources.work_off;
             }
             else
             {
-                // ¹Ø±Õ×´Ì¬£¬´ò¿ª
+                // å…³é—­çŠ¶æ€ï¼Œæ‰“å¼€
                 timer1.Start();
-                label1.Text = "×´Ì¬£ºÒÑ´ò¿ª";
+                label1.Text = "çŠ¶æ€ï¼šå·²æ‰“å¼€";
                 config.WriteKey("auto_run", "true");
                 this.notifyIcon1.Icon = Properties.Resources.work_on;
             }
