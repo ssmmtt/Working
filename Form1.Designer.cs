@@ -52,7 +52,7 @@ namespace Working
             button1 = new Button();
             notifyIcon1 = new NotifyIcon(components);
             contextMenuStrip1 = new ContextMenuStrip(components);
-            退出ToolStripMenuItem = new ToolStripMenuItem();
+            ToolStripMenuItem = new ToolStripMenuItem();
             dateTimePicker1 = new DateTimePicker();
             label2 = new Label();
             label3 = new Label();
@@ -62,7 +62,7 @@ namespace Working
             // 
             // timer1
             // 
-            timer1.Interval = 50;
+            timer1.Interval = 50000;
             timer1.Tick += timer1_Tick;
             // 
             // label1
@@ -101,16 +101,16 @@ namespace Working
             // contextMenuStrip1
             // 
             contextMenuStrip1.ImageScalingSize = new Size(20, 20);
-            contextMenuStrip1.Items.AddRange(new ToolStripItem[] { 退出ToolStripMenuItem });
+            contextMenuStrip1.Items.AddRange(new ToolStripItem[] { ToolStripMenuItem });
             contextMenuStrip1.Name = "contextMenuStrip1";
             contextMenuStrip1.Size = new Size(109, 28);
             // 
-            // 退出ToolStripMenuItem
+            // ToolStripMenuItem
             // 
-            退出ToolStripMenuItem.Name = "ToolStripMenuItem";
-            退出ToolStripMenuItem.Size = new Size(108, 24);
-            退出ToolStripMenuItem.Text = "退出";
-            退出ToolStripMenuItem.Click += ToolStripMenuItem_Click;
+            ToolStripMenuItem.Name = "ToolStripMenuItem";
+            ToolStripMenuItem.Size = new Size(108, 24);
+            ToolStripMenuItem.Text = "退出";
+            ToolStripMenuItem.Click += ToolStripMenuItem_Click;
             // 
             // dateTimePicker1
             // 
@@ -186,7 +186,7 @@ namespace Working
         private System.Windows.Forms.Timer timer1;
         private NotifyIcon notifyIcon1;
         private ContextMenuStrip contextMenuStrip1;
-        private ToolStripMenuItem 退出ToolStripMenuItem;
+        private ToolStripMenuItem ToolStripMenuItem;
         private DateTimePicker dateTimePicker1;
         private Label label2;
         private Label label3;
