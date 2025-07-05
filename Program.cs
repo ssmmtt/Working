@@ -21,7 +21,7 @@ namespace Working
             }
             else
             {
-                MessageBox.Show("³ÌĞòÒÑÔËĞĞ£¬²»ÄÜÔÙ´Î´ò¿ª£¡");
+                MessageBox.Show("ç¨‹åºå·²è¿è¡Œï¼Œä¸èƒ½å†æ¬¡æ‰“å¼€ï¼");
                 Environment.Exit(1);
             }
         }
