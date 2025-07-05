@@ -1,13 +1,9 @@
 name: BuildRelease
 
-#on:
-#  push:
-#    tags:
-#      - "*"
-
 on:
-  workflow_dispatch:
-
+  push:
+    tags:
+      - "*"
 
 jobs:
   build:
