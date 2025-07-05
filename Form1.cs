@@ -95,7 +95,7 @@ namespace Working
             }
         }
 
-        private void ÍË³öToolStripMenuItem_Click(object sender, EventArgs e)
+        private void ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.notifyIcon1.Visible = false;
             Environment.Exit(Environment.ExitCode);

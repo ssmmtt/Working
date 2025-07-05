@@ -107,10 +107,10 @@ namespace Working
             // 
             // 退出ToolStripMenuItem
             // 
-            退出ToolStripMenuItem.Name = "退出ToolStripMenuItem";
+            退出ToolStripMenuItem.Name = "ToolStripMenuItem";
             退出ToolStripMenuItem.Size = new Size(108, 24);
             退出ToolStripMenuItem.Text = "退出";
-            退出ToolStripMenuItem.Click += 退出ToolStripMenuItem_Click;
+            退出ToolStripMenuItem.Click += ToolStripMenuItem_Click;
             // 
             // dateTimePicker1
             // 
