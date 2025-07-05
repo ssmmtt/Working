@@ -1,0 +1,72 @@
+name: BuildRelease
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Delete workflows history
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 1
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build
+        run: ./build.ps1
+
+      - name: Get tag description
+        id: get_tag_description
+        run: |
+          $TAG_NAME=$(git describe --tags --exact-match)
+          $TAG_DESCRIPTION=$(git show $TAG_NAME --no-patch --format='%b' | Select-Object -Skip 3)
+          echo "Tag description: $TAG_DESCRIPTION"
+          echo "::set-output name=tag_description::$TAG_DESCRIPTION"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+          body: ${{ steps.get_tag_description.outputs.tag_description }}
+
+      - name: Upload Release x86
+        id: upload-release-x86
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/Working/Working_x86.exe
+          asset_name: Working_x86.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload Release x64
+        id: upload-release-x64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/Working/Working_x64.exe
+          asset_name: Working_x64.exe
+          asset_content_type: application/octet-stream
