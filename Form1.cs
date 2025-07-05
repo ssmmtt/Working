@@ -74,8 +74,6 @@ namespace Working
             DateTime currentTime = DateTime.Now;
             if (currentTime.TimeOfDay >= startTime.TimeOfDay && currentTime.TimeOfDay <= endTime.TimeOfDay)
             {
-                // 重复一次恢复按键状态
-                wake_up();
                 wake_up();
             }
         }

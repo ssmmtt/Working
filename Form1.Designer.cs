@@ -34,8 +34,9 @@ namespace Working
         {
             const int KEYEVENTF_EXTENDEDKEY = 0x1;
             const int KEYEVENTF_KEYUP = 0x2;
-            keybd_event((byte)Keys.Scroll, 0, KEYEVENTF_EXTENDEDKEY, 0);
-            keybd_event((byte)Keys.Scroll, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+            const byte VK_F15 = 0x7E;
+            keybd_event(VK_F15, 0, KEYEVENTF_EXTENDEDKEY, 0);
+            keybd_event(VK_F15, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,0);
         }
 
 
@@ -61,7 +62,7 @@ namespace Working
             // 
             // timer1
             // 
-            timer1.Interval = 180000;
+            timer1.Interval = 50;
             timer1.Tick += timer1_Tick;
             // 
             // label1
