@@ -32,11 +32,11 @@ namespace Working
 
         private void wake_up()
         {
+            const byte VK_NUMLOCK = 0x90;
             const int KEYEVENTF_EXTENDEDKEY = 0x1;
             const int KEYEVENTF_KEYUP = 0x2;
-            const byte VK_F15 = 0x7E;
-            keybd_event(VK_F15, 0, KEYEVENTF_EXTENDEDKEY, 0);
-            keybd_event(VK_F15, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,0);
+            keybd_event(VK_NUMLOCK, 0, KEYEVENTF_EXTENDEDKEY, 0);
+            keybd_event(VK_NUMLOCK, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,0);
         }
 
 
