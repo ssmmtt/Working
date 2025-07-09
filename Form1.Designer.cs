@@ -35,8 +35,13 @@ namespace Working
             const byte VK_NUMLOCK = 0x90;
             const int KEYEVENTF_EXTENDEDKEY = 0x1;
             const int KEYEVENTF_KEYUP = 0x2;
-            keybd_event(VK_NUMLOCK, 0, KEYEVENTF_EXTENDEDKEY, 0);
-            keybd_event(VK_NUMLOCK, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,0);
+
+            // 模拟按两次 NumLock，不改变最终状态
+            for (int i = 0; i < 2; i++)
+            {
+                keybd_event(VK_NUMLOCK, 0, KEYEVENTF_EXTENDEDKEY, 0);
+                keybd_event(VK_NUMLOCK, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+            }
         }
 
 
