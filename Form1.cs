@@ -5,6 +5,9 @@ namespace Working
 {
     public partial class Form1 : Form
     {
+        // 为 true 时拦截首次显示：仅托盘、不出 Alt+Tab（最小化仍会进切换列表）
+        private bool _suppressInitialShow;
+
         public static IniConfig config;                       //配置文件
         public static DateTime startTime;
         public static DateTime endTime;
@@ -41,10 +44,16 @@ namespace Working
 
             if (autoMini == "true")
             {
-                // 将窗口最小化到托盘
-                this.WindowState = FormWindowState.Minimized;
+                _suppressInitialShow = true;
                 this.ShowInTaskbar = false;
             }
+        }
+
+        protected override void SetVisibleCore(bool value)
+        {
+            if (_suppressInitialShow && value)
+                return;
+            base.SetVisibleCore(value);
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -88,6 +97,7 @@ namespace Working
         {
             if (e.Button == MouseButtons.Left)
             {
+                _suppressInitialShow = false;
                 this.WindowState = FormWindowState.Normal;
                 this.ShowInTaskbar = true;
                 this.Show();
