@@ -26,25 +26,6 @@ namespace Working
 
         #region Windows Form Designer generated code
 
-        // 模拟键盘输入
-        [DllImport("user32.dll")]
-        static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
-
-        private void wake_up()
-        {
-            const byte VK_NUMLOCK = 0x90;
-            const int KEYEVENTF_EXTENDEDKEY = 0x1;
-            const int KEYEVENTF_KEYUP = 0x2;
-
-            // 模拟按两次 NumLock，不改变最终状态
-            for (int i = 0; i < 2; i++)
-            {
-                keybd_event(VK_NUMLOCK, 0, KEYEVENTF_EXTENDEDKEY, 0);
-                keybd_event(VK_NUMLOCK, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
-            }
-        }
-
-
         /// <summary>
         ///  Required method for Designer support - do not modify
         ///  the contents of this method with the code editor.

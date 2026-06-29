@@ -1,127 +1,118 @@
 using System.Globalization;
-using System.Windows.Input;
 
 namespace Working
 {
     public partial class Form1 : Form
     {
-        // 为 true 时拦截首次显示：仅托盘、不出 Alt+Tab（最小化仍会进切换列表）
         private bool _suppressInitialShow;
-
-        public static IniConfig config;                       //配置文件
-        public static DateTime startTime;
-        public static DateTime endTime;
+        private readonly IdleManager _power = new();
+        private IniConfig _config = null!;
+        private DateTime _startTime;
+        private DateTime _endTime;
 
         public Form1()
         {
             InitializeComponent();
-            // 判断配置文件是否存在
-            config = new IniConfig(AppDomain.CurrentDomain.SetupInformation.ApplicationBase + "config.ini");
-            if (!config.FileExist())
-            {
-                config.WriteKey("auto_run", "true");
-                config.WriteKey("start_time", "0:00:00");
-                config.WriteKey("end_time", "23:59:59");
-                config.WriteKey("auto_mini", "true");
-            }
-
-            string autoRun = config.ReadKey("auto_run");
-
-            if (autoRun == "true")
-            {
-                timer1.Start();
-                label1.Text = "状态：已打开";
-                this.notifyIcon1.Icon = Properties.Resources.work_on;
-            }
-
-            startTime = DateTime.ParseExact(config.ReadKey("start_time"), "H:mm:ss", CultureInfo.InvariantCulture);
-            endTime = DateTime.ParseExact(config.ReadKey("end_time"), "H:mm:ss", CultureInfo.InvariantCulture);
-
-            dateTimePicker1.Value = startTime;
-            dateTimePicker2.Value = endTime;
-
-            string autoMini = config.ReadKey("auto_mini");
-
-            if (autoMini == "true")
+            LoadConfig();
+            if (_config.ReadKey("auto_run") == "true") SetWorking(true);
+            if (_config.ReadKey("auto_mini") == "true")
             {
                 _suppressInitialShow = true;
-                this.ShowInTaskbar = false;
+                ShowInTaskbar = false;
             }
         }
 
         protected override void SetVisibleCore(bool value)
         {
-            if (_suppressInitialShow && value)
-                return;
-            base.SetVisibleCore(value);
+            if (!(_suppressInitialShow && value)) base.SetVisibleCore(value);
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void LoadConfig()
         {
-            bool enabled = timer1.Enabled;
-            if (enabled)
+            _config = new IniConfig(AppDomain.CurrentDomain.SetupInformation.ApplicationBase + "config.ini");
+            if (!_config.FileExist())
             {
-                // 打开状态，关闭
-                timer1.Stop();
-                label1.Text = "状态：已关闭";
-                config.WriteKey("auto_run", "false");
-                this.notifyIcon1.Icon = Properties.Resources.work_off;
+                _config.WriteKey("auto_run", "true");
+                _config.WriteKey("start_time", "0:00:00");
+                _config.WriteKey("end_time", "23:59:59");
+                _config.WriteKey("auto_mini", "true");
+            }
+
+            _startTime = ParseTime(_config.ReadKey("start_time"));
+            _endTime = ParseTime(_config.ReadKey("end_time"));
+            dateTimePicker1.Value = _startTime;
+            dateTimePicker2.Value = _endTime;
+        }
+
+        private static DateTime ParseTime(string s) =>
+            DateTime.ParseExact(s, "H:mm:ss", CultureInfo.InvariantCulture);
+
+        private bool InWorkHours()
+        {
+            var now = DateTime.Now.TimeOfDay;
+            return now >= _startTime.TimeOfDay && now <= _endTime.TimeOfDay;
+        }
+
+        private void SetWorking(bool on)
+        {
+            if (on)
+            {
+                timer1.Start();
+                label1.Text = "状态：已打开";
+                notifyIcon1.Icon = Properties.Resources.work_on;
+                _config.WriteKey("auto_run", "true");
+                _power.Enable(InWorkHours);
             }
             else
             {
-                // 关闭状态，打开
-                timer1.Start();
-                label1.Text = "状态：已打开";
-                config.WriteKey("auto_run", "true");
-                this.notifyIcon1.Icon = Properties.Resources.work_on;
+                timer1.Stop();
+                label1.Text = "状态：已关闭";
+                notifyIcon1.Icon = Properties.Resources.work_off;
+                _config.WriteKey("auto_run", "false");
+                _power.Disable();
             }
         }
 
+        private void button1_Click(object sender, EventArgs e) => SetWorking(!timer1.Enabled);
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            DateTime currentTime = DateTime.Now;
-            if (currentTime.TimeOfDay >= startTime.TimeOfDay && currentTime.TimeOfDay <= endTime.TimeOfDay)
-            {
-                wake_up();
-            }
+            if (InWorkHours()) _power.KeepAlive();
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            this.Hide();
+            Hide();
             e.Cancel = true;
         }
 
         private void notifyIcon1_MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
-            {
-                _suppressInitialShow = false;
-                this.WindowState = FormWindowState.Normal;
-                this.ShowInTaskbar = true;
-                this.Show();
-                this.Activate();
-            }
+            if (e.Button != MouseButtons.Left) return;
+            _suppressInitialShow = false;
+            WindowState = FormWindowState.Normal;
+            ShowInTaskbar = true;
+            Show();
+            Activate();
         }
 
         private void ToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.notifyIcon1.Visible = false;
-            Environment.Exit(Environment.ExitCode);
+            notifyIcon1.Visible = false;
+            _power.Dispose();
+            Environment.Exit(0);
         }
 
-        private void dateTimePicker1_TextChanged(object sender, EventArgs e)
-        {
-            startTime = DateTime.ParseExact(dateTimePicker1.Text, "H:mm:ss", CultureInfo.InvariantCulture);
-            config.WriteKey("start_time", startTime.ToLongTimeString());
-            label1.Focus();
-        }
+        private void dateTimePicker1_TextChanged(object sender, EventArgs e) =>
+            SaveTime(dateTimePicker1, ref _startTime, "start_time");
 
-        private void dateTimePicker2_TextChanged(object sender, EventArgs e)
+        private void dateTimePicker2_TextChanged(object sender, EventArgs e) =>
+            SaveTime(dateTimePicker2, ref _endTime, "end_time");
+
+        private void SaveTime(DateTimePicker picker, ref DateTime field, string key)
         {
-            endTime = DateTime.ParseExact(dateTimePicker2.Text, "H:mm:ss", CultureInfo.InvariantCulture);
-            config.WriteKey("end_time", endTime.ToLongTimeString());
+            field = ParseTime(picker.Text);
+            _config.WriteKey(key, field.ToLongTimeString());
             label1.Focus();
         }
     }

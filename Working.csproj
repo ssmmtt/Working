@@ -9,6 +9,7 @@
     <UseWPF>False</UseWPF>
     <IsPublishable>True</IsPublishable>
     <ApplicationIcon>Resources\work_off.ico</ApplicationIcon>
+	<Version>2.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
