@@ -29,6 +29,7 @@ namespace Working
         private bool _enabled;
         private bool _ddcOk;
         private Func<bool>? _inWorkHours;
+        private bool _wasInWorkHours;
         private DateTime _lastDimmedLog;
 
         [DllImport("user32.dll")] private static extern bool GetLastInputInfo(ref LastInputInfo i);
@@ -45,6 +46,7 @@ namespace Working
             _inWorkHours = inWorkHours;
             _enabled = true;
             _hasSynthetic = false;
+            _wasInWorkHours = false;
             _lastInputTick = QueryInputTick();
             _lastActivity = DateTime.UtcNow;
 
@@ -84,12 +86,27 @@ namespace Working
         private void OnTick()
         {
             if (!_enabled) return;
-            if (_inWorkHours?.Invoke() != true)
+
+            bool inWorkHours = _inWorkHours?.Invoke() == true;
+            if (!inWorkHours)
             {
-                AppLog.Print("空闲", "当前不在工作时间段内，跳过检测");
+                if (_brightness.IsDimmed)
+                {
+                    _brightness.Restore();
+                    ApplyPowerState();
+                    AppLog.Print("空闲", "已离开工作时间段，恢复亮度");
+                }
+                else if (_wasInWorkHours)
+                {
+                    AppLog.Print("空闲", "已离开工作时间段");
+                }
+
+                _wasInWorkHours = false;
+                SetPollInterval();
                 return;
             }
 
+            _wasInWorkHours = true;
             PollInput();
 
             if (_brightness.IsDimmed)
