@@ -27,7 +27,7 @@ namespace Working
         private uint _syntheticTick;
         private bool _hasSynthetic;
         private bool _enabled;
-        private bool _ddcOk;
+        private bool _canDim;
         private Func<bool>? _inWorkHours;
         private bool _wasInWorkHours;
         private DateTime _lastDimmedLog;
@@ -50,8 +50,7 @@ namespace Working
             _lastInputTick = QueryInputTick();
             _lastActivity = DateTime.UtcNow;
 
-            _ddcOk = _brightness.IsSupported();
-            AppLog.Print("亮度", _ddcOk ? "DDC/CI 可用" : "DDC/CI 不可用");
+            _canDim = _brightness.IsSupported();
 
             var sys = SystemIdleTimeout.GetIdleThreshold();
             AppLog.Print("空闲", sys == null
@@ -168,7 +167,7 @@ namespace Working
         {
             uint f = ES_CONTINUOUS | ES_SYSTEM_REQUIRED;
             // DDC 可用时保持显示输出，由程序调暗亮度而非交给系统处理
-            if (_ddcOk) f |= ES_DISPLAY_REQUIRED;
+            if (_canDim) f |= ES_DISPLAY_REQUIRED;
             SetThreadExecutionState(f);
         }
 
