@@ -30,7 +30,9 @@ namespace Working
         private bool _canDim;
         private Func<bool>? _inWorkHours;
         private bool _wasInWorkHours;
+        private bool _wasMediaPlaying;
         private DateTime _lastDimmedLog;
+        private DateTime _lastMediaLog;
 
         [DllImport("user32.dll")] private static extern bool GetLastInputInfo(ref LastInputInfo i);
         [DllImport("user32.dll")] private static extern void keybd_event(byte vk, byte scan, int flags, int extra);
@@ -47,6 +49,7 @@ namespace Working
             _enabled = true;
             _hasSynthetic = false;
             _wasInWorkHours = false;
+            _wasMediaPlaying = false;
             _lastInputTick = QueryInputTick();
             _lastActivity = DateTime.UtcNow;
 
@@ -108,6 +111,12 @@ namespace Working
             _wasInWorkHours = true;
             PollInput();
 
+            if (HandleMediaPlayback())
+            {
+                SetPollInterval();
+                return;
+            }
+
             if (_brightness.IsDimmed)
             {
                 if (DateTime.UtcNow - _lastDimmedLog >= TimeSpan.FromSeconds(5))
@@ -127,6 +136,31 @@ namespace Working
                 ApplyPowerState();
 
             SetPollInterval();
+        }
+
+        /// <summary>播放中跳过调暗；若已调暗则恢复。返回 true 表示本轮不再继续空闲调暗逻辑。</summary>
+        private bool HandleMediaPlayback()
+        {
+            if (!MediaPlaybackGuard.IsActive())
+            {
+                _wasMediaPlaying = false;
+                return false;
+            }
+
+            if (_brightness.IsDimmed)
+            {
+                _brightness.Restore();
+                ApplyPowerState();
+                AppLog.Print("媒体", "检测到播放中，恢复亮度");
+            }
+            else if (!_wasMediaPlaying || DateTime.UtcNow - _lastMediaLog >= TimeSpan.FromSeconds(30))
+            {
+                AppLog.Print("媒体", "检测到播放中，跳过调暗");
+                _lastMediaLog = DateTime.UtcNow;
+            }
+
+            _wasMediaPlaying = true;
+            return true;
         }
 
         private void PollInput()
