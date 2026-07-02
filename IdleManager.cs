@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Microsoft.Win32;
 
 namespace Working
 {
@@ -33,6 +34,9 @@ namespace Working
         private bool _wasMediaPlaying;
         private DateTime _lastDimmedLog;
         private DateTime _lastMediaLog;
+        private bool _pendingLocalRestore;
+        private bool _suppressRestore;
+        private bool _remoteSessionActive;
 
         [DllImport("user32.dll")] private static extern bool GetLastInputInfo(ref LastInputInfo i);
         [DllImport("user32.dll")] private static extern void keybd_event(byte vk, byte scan, int flags, int extra);
@@ -41,6 +45,7 @@ namespace Working
         public IdleManager()
         {
             _timer.Tick += (_, _) => OnTick();
+            SystemEvents.SessionSwitch += OnSessionSwitch;
         }
 
         public void Enable(Func<bool> inWorkHours)
@@ -50,6 +55,9 @@ namespace Working
             _hasSynthetic = false;
             _wasInWorkHours = false;
             _wasMediaPlaying = false;
+            _pendingLocalRestore = false;
+            _suppressRestore = false;
+            _remoteSessionActive = false;
             _lastInputTick = QueryInputTick();
             _lastActivity = DateTime.UtcNow;
 
@@ -74,7 +82,11 @@ namespace Working
             SetThreadExecutionState(ES_CONTINUOUS);
         }
 
-        public void Dispose() => Disable();
+        public void Dispose()
+        {
+            SystemEvents.SessionSwitch -= OnSessionSwitch;
+            Disable();
+        }
 
         public void KeepAlive()
         {
@@ -88,6 +100,27 @@ namespace Working
         private void OnTick()
         {
             if (!_enabled) return;
+
+            if (_pendingLocalRestore)
+            {
+                _pendingLocalRestore = false;
+                _lastInputTick = QueryInputTick();
+                _lastActivity = DateTime.UtcNow;
+                if (_brightness.IsDimmed)
+                {
+                    _brightness.Restore();
+                    ApplyPowerState();
+                    if (_brightness.IsDimmed)
+                    {
+                        AppLog.Print("空闲", "本机解锁，恢复亮度失败，将重试");
+                        _pendingLocalRestore = true;
+                    }
+                    else
+                    {
+                        AppLog.Print("空闲", "本机解锁，已恢复亮度");
+                    }
+                }
+            }
 
             bool inWorkHours = _inWorkHours?.Invoke() == true;
             if (!inWorkHours)
@@ -147,7 +180,7 @@ namespace Working
                 return false;
             }
 
-            if (_brightness.IsDimmed)
+            if (_brightness.IsDimmed && !_suppressRestore)
             {
                 _brightness.Restore();
                 ApplyPowerState();
@@ -176,11 +209,11 @@ namespace Working
             }
 
             _lastActivity = DateTime.UtcNow;
-            if (_brightness.IsDimmed)
+            if (_brightness.IsDimmed && !_suppressRestore)
             {
                 _brightness.Restore();
                 ApplyPowerState();
-                AppLog.Print("用户活动", "恢复亮度");
+                AppLog.Print("用户活动", _brightness.IsDimmed ? "恢复亮度失败，将重试" : "恢复亮度");
             }
         }
 
@@ -213,6 +246,60 @@ namespace Working
                 string mode = _brightness.IsDimmed ? "恢复监视" : "空闲检测";
                 AppLog.Print("空闲", $"{mode}间隔：{_timer.Interval} ms -> {ms} ms");
                 _timer.Interval = ms;
+            }
+        }
+
+        private void OnSessionSwitch(object sender, SessionSwitchEventArgs e)
+        {
+            if (!_enabled) return;
+            switch (e.Reason)
+            {
+                case SessionSwitchReason.RemoteConnect:
+                    _remoteSessionActive = true;
+                    _suppressRestore = true;
+                    AppLog.Print("空闲", $"会话切换：{e.Reason}，保持调暗状态");
+                    break;
+
+                case SessionSwitchReason.SessionLock:
+                    _suppressRestore = true;
+                    AppLog.Print("空闲", $"会话切换：{e.Reason}，保持调暗状态");
+                    break;
+
+                case SessionSwitchReason.RemoteDisconnect:
+                    // 远程已结束；若仍处于锁屏则继续抑制键鼠恢复，等待本机解锁
+                    _remoteSessionActive = false;
+                    _suppressRestore = true;
+                    AppLog.Print("空闲", $"会话切换：{e.Reason}，保持调暗，等待本机解锁");
+                    break;
+
+                case SessionSwitchReason.ConsoleConnect:
+                    _remoteSessionActive = false;
+                    _suppressRestore = false;
+                    _pendingLocalRestore = true;
+                    AppLog.Print("空闲", $"会话切换：{e.Reason}，本机控制台恢复亮度");
+                    break;
+
+                case SessionSwitchReason.SessionLogon:
+                    if (!_remoteSessionActive)
+                    {
+                        _suppressRestore = false;
+                        _pendingLocalRestore = true;
+                        AppLog.Print("空闲", $"会话切换：{e.Reason}，登录后恢复亮度");
+                    }
+                    break;
+
+                case SessionSwitchReason.SessionUnlock:
+                    if (_remoteSessionActive)
+                    {
+                        AppLog.Print("空闲", $"会话切换：{e.Reason}，远程会话中，保持调暗");
+                    }
+                    else
+                    {
+                        _suppressRestore = false;
+                        _pendingLocalRestore = true;
+                        AppLog.Print("空闲", $"会话切换：{e.Reason}，本地解锁后恢复亮度");
+                    }
+                    break;
             }
         }
     }

@@ -50,18 +50,27 @@ namespace Working
         {
             if (_saved == null) return;
 
+            bool restored = false;
             try
             {
                 if (SetBrightness(_saved.Value))
+                {
                     AppLog.Print("亮度", $"[内置屏] 恢复为 {_saved}");
+                    restored = true;
+                }
             }
             catch (Exception ex)
             {
                 AppLog.Print("亮度", $"[内置屏] 恢复失败：{ex.Message}");
             }
-            finally
+
+            if (restored)
             {
                 _saved = null;
+            }
+            else
+            {
+                AppLog.Print("亮度", "[内置屏] 本次恢复未成功，将在后续输入/会话恢复时重试");
             }
         }
 

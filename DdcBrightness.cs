@@ -80,14 +80,73 @@ namespace Working
         {
             if (!IsDimmed) return;
 
+            // 远程桌面连接/断开后，显示器枚举顺序可能变化。
+            // 除精确 key 匹配外，使用剩余亮度值兜底恢复，避免卡在暗屏。
+            var pending = new Dictionary<string, uint>(_saved);
+            var remaining = new Queue<uint>(_saved.Values);
+            int success = 0;
             ForEach((key, handle) =>
             {
-                if (_saved.TryGetValue(key, out uint saved) && SetMonitorBrightness(handle, saved))
-                    AppLog.Print("亮度", $"[{key}] 恢复为 {saved}");
+                if (pending.TryGetValue(key, out uint saved))
+                {
+                    if (TryRestoreWithVerify(handle, saved))
+                    {
+                        AppLog.Print("亮度", $"[{key}] 恢复为 {saved}");
+                        pending.Remove(key);
+                        success++;
+                    }
+                    else
+                    {
+                        AppLog.Print("亮度", $"[{key}] 恢复失败（目标 {saved}）");
+                    }
+                    return;
+                }
+
+                if (remaining.Count > 0)
+                {
+                    uint fallback = remaining.Dequeue();
+                    if (TryRestoreWithVerify(handle, fallback))
+                    {
+                        AppLog.Print("亮度", $"[{key}] 使用兜底亮度恢复为 {fallback}");
+                        success++;
+                    }
+                    else
+                    {
+                        AppLog.Print("亮度", $"[{key}] 兜底恢复失败（目标 {fallback}）");
+                    }
+                }
             });
 
+            if (success == 0)
+            {
+                AppLog.Print("亮度", "外接屏恢复失败，将在后续输入/会话恢复时重试");
+                IsDimmed = true;
+                return;
+            }
+
             _saved.Clear();
-            IsDimmed = false;
+            foreach (var kv in pending)
+                _saved[kv.Key] = kv.Value;
+            IsDimmed = _saved.Count > 0;
+        }
+
+        private static bool TryRestoreWithVerify(IntPtr handle, uint target)
+        {
+            if (!SetMonitorBrightness(handle, target))
+                return false;
+
+            uint min = 0, cur = 0, max = 0;
+            if (!GetMonitorBrightness(handle, ref min, ref cur, ref max))
+            {
+                // 无法回读时保守认为成功（部分显示器回读不稳定）
+                return true;
+            }
+
+            if (target <= min)
+                return cur <= min;
+
+            // 允许显示器步进差异（目标附近 ±1）
+            return cur >= target - 1;
         }
 
         private void ForEach(Action<string, IntPtr> action)
