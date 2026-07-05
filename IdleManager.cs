@@ -12,10 +12,14 @@ namespace Working
         private const uint ES_SYSTEM_REQUIRED = 0x00000001;
         private const uint ES_DISPLAY_REQUIRED = 0x00000002;
         private const byte VK_F15 = 0x7E;
+        private const byte ScanF15 = 0x68;
+        private const int KeyeventfExtendedkey = 0x0001;
+        private const int KeyeventfKeyup = 0x0002;
 
         private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(5);
         private static readonly TimeSpan DimmedPollInterval = TimeSpan.FromSeconds(1);
         private static readonly TimeSpan DefaultThreshold = TimeSpan.FromMinutes(30);
+        private static readonly TimeSpan KeepAliveInputGrace = TimeSpan.FromSeconds(45);
 
         [StructLayout(LayoutKind.Sequential)]
         private struct LastInputInfo { public uint cbSize; public uint dwTime; }
@@ -91,8 +95,16 @@ namespace Working
         public void KeepAlive()
         {
             if (!_enabled) return;
-            keybd_event(VK_F15, 0, 0, 0);
-            keybd_event(VK_F15, 0, 2, 0);
+
+            ApplyPowerState();
+
+            // 用户近期有真实键鼠操作（打游戏、办公等）时不模拟按键，避免干扰前台应用
+            if (HasRecentRealInput(KeepAliveInputGrace))
+                return;
+
+            // 必须带扩展键扫描码，否则 scan=0 时部分终端（如 Xshell）会把 0x7E 当成 ~ 字符
+            keybd_event(VK_F15, ScanF15, KeyeventfExtendedkey, 0);
+            keybd_event(VK_F15, ScanF15, KeyeventfExtendedkey | KeyeventfKeyup, 0);
             MarkSynthetic();
             AppLog.Print("防休眠", "F15");
         }
@@ -223,6 +235,20 @@ namespace Working
             _hasSynthetic = true;
             _lastInputTick = _syntheticTick;
         }
+
+        /// <summary>近期是否有真实用户键鼠输入（排除本程序模拟的 F15）。</summary>
+        private bool HasRecentRealInput(TimeSpan threshold)
+        {
+            uint tick = QueryInputTick();
+            if (tick == 0) return false;
+
+            if (_hasSynthetic && tick == _syntheticTick)
+                return false;
+
+            return ElapsedMs(tick) < (uint)threshold.TotalMilliseconds;
+        }
+
+        private static uint ElapsedMs(uint fromTick) => unchecked((uint)Environment.TickCount - fromTick);
 
         private static uint QueryInputTick()
         {
