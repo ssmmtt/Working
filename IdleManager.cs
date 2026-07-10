@@ -67,6 +67,10 @@ namespace Working
 
             _canDim = _brightness.IsSupported();
 
+            // 上次调暗后异常关机时，显示器硬件亮度可能仍为最低；启动后立即尝试恢复
+            if (_brightness.RestoreFromPreviousSession() && _brightness.IsDimmed)
+                _pendingLocalRestore = true;
+
             var sys = SystemIdleTimeout.GetIdleThreshold();
             AppLog.Print("空闲", sys == null
                 ? $"调暗阈值默认 {DefaultThreshold.TotalMinutes:F0} 分钟"

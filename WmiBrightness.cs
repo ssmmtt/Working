@@ -46,6 +46,10 @@ namespace Working
             return false;
         }
 
+        public byte? SavedBrightness => _saved;
+
+        public void LoadSaved(byte value) => _saved = value;
+
         public void Restore()
         {
             if (_saved == null) return;

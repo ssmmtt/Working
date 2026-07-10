@@ -76,6 +76,16 @@ namespace Working
             return IsDimmed;
         }
 
+        public IReadOnlyDictionary<string, uint> SavedBrightness => _saved;
+
+        public void LoadSaved(IReadOnlyDictionary<string, uint> saved)
+        {
+            _saved.Clear();
+            foreach (var kv in saved)
+                _saved[kv.Key] = kv.Value;
+            IsDimmed = _saved.Count > 0;
+        }
+
         public void Restore()
         {
             if (!IsDimmed) return;

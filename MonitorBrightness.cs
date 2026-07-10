@@ -24,6 +24,8 @@ namespace Working
             // 两类都尝试，任一成功即视为已调暗
             bool wmi = _wmi.DimToMinimum();
             bool ddc = _ddc.DimToMinimum();
+            if (wmi || ddc)
+                Persist();
             return wmi || ddc;
         }
 
@@ -31,6 +33,38 @@ namespace Working
         {
             _wmi.Restore();
             _ddc.Restore();
+            Persist();
+        }
+
+        /// <summary>
+        /// 启动时恢复上次异常关机前未恢复的亮度。
+        /// </summary>
+        public bool RestoreFromPreviousSession()
+        {
+            if (!BrightnessState.TryLoad(out var ddc, out byte? wmi))
+                return false;
+
+            if (ddc.Count > 0)
+                _ddc.LoadSaved(ddc);
+            if (wmi != null)
+                _wmi.LoadSaved(wmi.Value);
+
+            AppLog.Print("亮度", "检测到上次未恢复的调暗状态，正在恢复");
+            Restore();
+            return true;
+        }
+
+        private void Persist()
+        {
+            if (!IsDimmed)
+            {
+                BrightnessState.Clear();
+                return;
+            }
+
+            BrightnessState.Save(
+                _ddc.IsDimmed ? _ddc.SavedBrightness : null,
+                _wmi.SavedBrightness);
         }
     }
 }
