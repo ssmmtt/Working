@@ -1,30 +1,43 @@
-using System.Collections;
-using System.Reflection;
+using System.Management;
 
 namespace Working
 {
     /// <summary>
-    /// 笔记本内置屏亮度控制（WMI root\WMI）。
-    /// 通过 COM（WbemScripting）反射调用，避免 dynamic 与额外 NuGet 依赖。
+    /// 笔记本内置屏亮度控制（WMI root\WMI，System.Management，与 PowerShell CIM 同路径）。
     /// </summary>
     internal sealed class WmiBrightness
     {
+        private const string WmiPath = @"root\WMI";
         private byte? _saved;
 
         public bool IsDimmed => _saved != null;
 
         public bool IsSupported()
         {
-            try { return QueryCurrentBrightness() != null; }
-            catch { return false; }
+            try
+            {
+                LogProbe();
+                return QueryCurrentBrightness() != null;
+            }
+            catch (Exception ex)
+            {
+                AppLog.Print("亮度", $"[内置屏] 支持检测异常：{FormatError(ex)}");
+                return false;
+            }
         }
 
         public bool DimToMinimum()
         {
             try
             {
-                byte? current = QueryCurrentBrightness();
-                if (current == null) return false;
+                byte? current = QueryCurrentBrightness(logDetail: true);
+                if (current == null)
+                {
+                    AppLog.Print("亮度", "[内置屏] 调暗跳过：无法读取当前亮度");
+                    return false;
+                }
+
+                AppLog.Print("亮度", $"[内置屏] 准备调暗，当前亮度 {current}");
 
                 if (current.Value == 0)
                 {
@@ -32,16 +45,18 @@ namespace Working
                     return false;
                 }
 
-                if (SetBrightness(0))
+                if (SetBrightness(0, "调暗"))
                 {
                     _saved = current;
                     AppLog.Print("亮度", $"[内置屏] {current} -> 0");
                     return true;
                 }
+
+                AppLog.Print("亮度", "[内置屏] 调暗失败：WmiSetBrightness 未生效");
             }
             catch (Exception ex)
             {
-                AppLog.Print("亮度", $"[内置屏] 调暗失败：{ex.Message}");
+                AppLog.Print("亮度", $"[内置屏] 调暗失败：{FormatError(ex)}");
             }
             return false;
         }
@@ -57,7 +72,7 @@ namespace Working
             bool restored = false;
             try
             {
-                if (SetBrightness(_saved.Value))
+                if (SetBrightness(_saved.Value, "恢复"))
                 {
                     AppLog.Print("亮度", $"[内置屏] 恢复为 {_saved}");
                     restored = true;
@@ -65,7 +80,7 @@ namespace Working
             }
             catch (Exception ex)
             {
-                AppLog.Print("亮度", $"[内置屏] 恢复失败：{ex.Message}");
+                AppLog.Print("亮度", $"[内置屏] 恢复失败：{FormatError(ex)}");
             }
 
             if (restored)
@@ -78,105 +93,138 @@ namespace Working
             }
         }
 
-        private static object? ConnectWmi()
+        private static void LogProbe()
         {
+            var scope = TryConnect(logFailure: true);
+            if (scope == null) return;
+
+            int brightnessCount = CountInstances(scope, "WmiMonitorBrightness");
+            int methodsCount = CountInstances(scope, "WmiMonitorBrightnessMethods");
+            AppLog.Print("亮度", $"[内置屏] WMI 探测：Brightness={brightnessCount}，Methods={methodsCount}");
+        }
+
+        private static ManagementScope? TryConnect(bool logFailure = false)
+        {
+            var scope = new ManagementScope($@"\\.\{WmiPath}");
             try
             {
-                Type? locatorType = Type.GetTypeFromProgID("WbemScripting.SWbemLocator");
-                if (locatorType == null) return null;
-
-                object locator = Activator.CreateInstance(locatorType)!;
-                return locatorType.InvokeMember("ConnectServer",
-                    BindingFlags.InvokeMethod, null, locator, new object?[] { ".", @"root\WMI" });
+                scope.Connect();
+                return scope;
             }
-            catch
+            catch (Exception ex)
             {
+                if (logFailure) AppLog.Print("亮度", $"[内置屏] WMI 连接失败：{FormatError(ex)}");
                 return null;
             }
         }
 
-        private static byte? QueryCurrentBrightness()
+        private static byte? QueryCurrentBrightness(bool logDetail = false)
         {
-            object? services = ConnectWmi();
-            if (services == null) return null;
+            var scope = TryConnect(logFailure: logDetail);
+            if (scope == null) return null;
 
-            foreach (object? inst in EnumerateInstances(services, "WmiMonitorBrightness"))
+            using var searcher = new ManagementObjectSearcher(scope,
+                new ObjectQuery("SELECT CurrentBrightness FROM WmiMonitorBrightness"));
+
+            int index = 0;
+            foreach (ManagementObject obj in searcher.Get())
             {
-                if (inst == null) continue;
-
-                try
+                using (obj)
                 {
-                    object? value = ReadWmiProperty(inst, "CurrentBrightness");
-                    if (value != null) return Convert.ToByte(value);
+                    try
+                    {
+                        byte level = Convert.ToByte(obj["CurrentBrightness"]);
+                        if (logDetail) AppLog.Print("亮度", $"[内置屏] Brightness#{index} CurrentBrightness={level}");
+                        return level;
+                    }
+                    catch (Exception ex)
+                    {
+                        if (logDetail) AppLog.Print("亮度", $"[内置屏] Brightness#{index} 读取失败：{FormatError(ex)}");
+                    }
                 }
-                catch { /* 跳过无效实例 */ }
+
+                index++;
             }
+
+            if (logDetail) AppLog.Print("亮度", "[内置屏] 未读到任何 CurrentBrightness");
             return null;
         }
 
-        private static bool SetBrightness(byte level)
+        private static bool SetBrightness(byte level, string action)
         {
-            object? services = ConnectWmi();
-            if (services == null) return false;
+            var scope = TryConnect(logFailure: true);
+            if (scope == null) return false;
 
-            bool any = false;
-            foreach (object? inst in EnumerateInstances(services, "WmiMonitorBrightnessMethods"))
+            byte? before = QueryCurrentBrightness();
+            if (before != null)
+                AppLog.Print("亮度", $"[内置屏] {action}前亮度 {before}");
+
+            using var searcher = new ManagementObjectSearcher(scope,
+                new ObjectQuery("SELECT * FROM WmiMonitorBrightnessMethods"));
+
+            int index = 0;
+            bool invoked = false;
+            foreach (ManagementObject obj in searcher.Get())
             {
-                if (inst == null) continue;
-
-                try
+                using (obj)
                 {
-                    inst.GetType().InvokeMember("WmiSetBrightness",
-                        BindingFlags.InvokeMethod, null, inst, new object?[] { 5u, level });
-                    any = true;
+                    try
+                    {
+                        string id = obj.Path?.Path ?? $"#{index}";
+                        AppLog.Print("亮度", $"[内置屏] Methods#{index} 调用 WmiSetBrightness(Timeout=5, Brightness={level}) {id}");
+
+                        using ManagementBaseObject inParams = obj.GetMethodParameters("WmiSetBrightness");
+                        inParams["Timeout"] = (uint)5;
+                        inParams["Brightness"] = (byte)level;
+                        using ManagementBaseObject? outParams = obj.InvokeMethod("WmiSetBrightness", inParams, null);
+
+                        invoked = true;
+                        uint ret = outParams?["ReturnValue"] is uint u ? u : 0;
+                        AppLog.Print("亮度", $"[内置屏] Methods#{index} 返回 ReturnValue={ret}");
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLog.Print("亮度", $"[内置屏] Methods#{index} 调用失败：{FormatError(ex)}");
+                    }
                 }
-                catch { /* 跳过无效实例 */ }
+
+                index++;
             }
-            return any;
+
+            if (!invoked)
+            {
+                AppLog.Print("亮度", $"[内置屏] {action}失败：未找到 WmiMonitorBrightnessMethods 实例");
+                return false;
+            }
+
+            byte? after = QueryCurrentBrightness();
+            if (after == null)
+            {
+                AppLog.Print("亮度", $"[内置屏] {action}后无法回读亮度");
+                return false;
+            }
+
+            AppLog.Print("亮度", $"[内置屏] {action}后亮度 {after}");
+            if (level == 0)
+                return after.Value == 0;
+
+            return after.Value >= level - 1;
         }
 
-        private static object? ReadWmiProperty(object inst, string name)
+        private static int CountInstances(ManagementScope scope, string className)
         {
-            // SWbemObject：优先直接读属性，失败则走 Properties_.Item(name).Value
-            try
+            using var searcher = new ManagementObjectSearcher(scope,
+                new ObjectQuery($"SELECT * FROM {className}"));
+            int count = 0;
+            foreach (ManagementObject obj in searcher.Get())
             {
-                return inst.GetType().InvokeMember(name,
-                    BindingFlags.GetProperty | BindingFlags.InvokeMethod, null, inst, null);
+                obj.Dispose();
+                count++;
             }
-            catch
-            {
-                object? props = inst.GetType().InvokeMember("Properties_",
-                    BindingFlags.GetProperty, null, inst, null);
-                if (props == null) return null;
-
-                object? prop = props.GetType().InvokeMember("Item",
-                    BindingFlags.InvokeMethod, null, props, new object?[] { name, 0 });
-                if (prop == null) return null;
-
-                return prop.GetType().InvokeMember("Value",
-                    BindingFlags.GetProperty, null, prop, null);
-            }
+            return count;
         }
 
-        private static IEnumerable EnumerateInstances(object services, string className)
-        {
-            object? instances;
-            try
-            {
-                instances = services.GetType().InvokeMember("InstancesOf",
-                    BindingFlags.InvokeMethod, null, services, new object?[] { className });
-            }
-            catch
-            {
-                yield break;
-            }
-
-            if (instances is not IEnumerable enumerable) yield break;
-
-            foreach (object? item in enumerable)
-            {
-                if (item != null) yield return item;
-            }
-        }
+        private static string FormatError(Exception ex) =>
+            ex.InnerException == null ? ex.Message : $"{ex.Message} -> {ex.InnerException.Message}";
     }
 }

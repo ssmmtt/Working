@@ -160,7 +160,7 @@ namespace Working
             _wasInWorkHours = true;
             PollInput();
 
-            if (HandleMediaPlayback())
+            if (!_brightness.IsDimmed && HandleMediaPlayback())
             {
                 SetPollInterval();
                 return;
@@ -181,13 +181,18 @@ namespace Working
             var idle = DateTime.UtcNow - _lastActivity;
             AppLog.Print("空闲", $"检测：空闲 {idle.TotalSeconds:F0}s / 阈值 {threshold.TotalSeconds:F0}s");
 
-            if (idle >= threshold && _brightness.DimToMinimum())
-                ApplyPowerState();
+            if (idle >= threshold)
+            {
+                if (_brightness.DimToMinimum())
+                    ApplyPowerState();
+                else
+                    AppLog.Print("空闲", "已达空闲阈值，但调暗未成功，详见 [亮度] 日志");
+            }
 
             SetPollInterval();
         }
 
-        /// <summary>播放中跳过调暗；若已调暗则恢复。返回 true 表示本轮不再继续空闲调暗逻辑。</summary>
+        /// <summary>未调暗时，播放中跳过调暗。已调暗后不再因音频恢复亮度。</summary>
         private bool HandleMediaPlayback()
         {
             if (!MediaPlaybackGuard.IsActive())
@@ -196,13 +201,7 @@ namespace Working
                 return false;
             }
 
-            if (_brightness.IsDimmed && !_suppressRestore)
-            {
-                _brightness.Restore();
-                ApplyPowerState();
-                AppLog.Print("媒体", "检测到播放中，恢复亮度");
-            }
-            else if (!_wasMediaPlaying || DateTime.UtcNow - _lastMediaLog >= TimeSpan.FromSeconds(30))
+            if (!_wasMediaPlaying || DateTime.UtcNow - _lastMediaLog >= TimeSpan.FromSeconds(30))
             {
                 AppLog.Print("媒体", "检测到播放中，跳过调暗");
                 _lastMediaLog = DateTime.UtcNow;

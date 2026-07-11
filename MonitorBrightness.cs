@@ -21,9 +21,10 @@ namespace Working
 
         public bool DimToMinimum()
         {
-            // 两类都尝试，任一成功即视为已调暗
             bool wmi = _wmi.DimToMinimum();
             bool ddc = _ddc.DimToMinimum();
+            if (!wmi && !ddc)
+                AppLog.Print("亮度", "本次调暗：外接屏与内置屏均未成功");
             if (wmi || ddc)
                 Persist();
             return wmi || ddc;

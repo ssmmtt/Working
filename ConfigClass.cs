@@ -9,10 +9,10 @@ public class IniConfig
     public string iniPath;
 
     [DllImport("kernel32")]
-    private static extern long WritePrivateProfileString(string section, string key, string val, string filePath);
+    private static extern long WritePrivateProfileString(string? section, string? key, string? val, string filePath);
 
     [DllImport("kernel32")]
-    private static extern int GetPrivateProfileString(string section, string key, string def, StringBuilder retVal,
+    private static extern int GetPrivateProfileString(string? section, string? key, string def, StringBuilder retVal,
         int size, string filePath);
 
     //        [DllImport("kernel32")]
@@ -82,10 +82,10 @@ public class IniConfig
     /// <param name="Section">Section</param>
     /// <param name="Key">键</param>
     /// <returns>返回的值</returns>
-    public string ReadKey(string Section, string Key)
+    public string ReadKey(string? section, string? key)
     {
         StringBuilder temp = new StringBuilder(256);
-        GetPrivateProfileString(Section, Key, "", temp, 256, iniPath);
+        GetPrivateProfileString(section, key, "", temp, 256, iniPath);
         return temp.ToString();
     }
 
@@ -95,9 +95,9 @@ public class IniConfig
     /// <param name="Section">Section</param>
     /// <param name="Key">键</param>
     /// <param name="Value">值</param>
-    public void WriteKey(string Section, string Key, string Value)
+    public void WriteKey(string? section, string? key, string? value)
     {
-        WritePrivateProfileString(Section, Key, Value, iniPath);
+        WritePrivateProfileString(section, key, value, iniPath);
     }
 
     /// <summary>
@@ -105,9 +105,9 @@ public class IniConfig
     /// </summary>
     /// <param name="Section"></param>
     /// <param name="Key"></param>
-    public void DeleteKey(string Section, string Key)
+    public void DeleteKey(string? section, string? key)
     {
-        WritePrivateProfileString(Section, Key, null, iniPath);
+        WritePrivateProfileString(section, key, null, iniPath);
     }
 
     #endregion
@@ -118,9 +118,9 @@ public class IniConfig
     /// 删除ini文件下personal段落下的所有键
     /// </summary>
     /// <param name="Section"></param>
-    public void DeleteSection(string Section)
+    public void DeleteSection(string section)
     {
-        WriteKey(Section, null, null);
+        WriteKey(section, null, null);
     }
 
     /// <summary>
