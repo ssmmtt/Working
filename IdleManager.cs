@@ -207,6 +207,7 @@ namespace Working
                 _lastMediaLog = DateTime.UtcNow;
             }
 
+            _lastActivity = DateTime.UtcNow;
             _wasMediaPlaying = true;
             return true;
         }
