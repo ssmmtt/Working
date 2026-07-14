@@ -4,15 +4,15 @@ using Microsoft.Win32;
 namespace Working
 {
     /// <summary>
-    /// 空闲检测、DDC 调暗/恢复亮度、F15 防离开。
+    /// 空闲检测、DDC 调暗/恢复亮度、F24 防离开。
     /// </summary>
     internal sealed class IdleManager : IDisposable
     {
         private const uint ES_CONTINUOUS = 0x80000000;
         private const uint ES_SYSTEM_REQUIRED = 0x00000001;
         private const uint ES_DISPLAY_REQUIRED = 0x00000002;
-        private const byte VK_F15 = 0x7E;
-        private const byte ScanF15 = 0x68;
+        private const byte VK_F24 = 0x87;
+        private const uint MAPVK_VK_TO_VSC = 0;
         private const int KeyeventfExtendedkey = 0x0001;
         private const int KeyeventfKeyup = 0x0002;
 
@@ -44,6 +44,7 @@ namespace Working
 
         [DllImport("user32.dll")] private static extern bool GetLastInputInfo(ref LastInputInfo i);
         [DllImport("user32.dll")] private static extern void keybd_event(byte vk, byte scan, int flags, int extra);
+        [DllImport("user32.dll")] private static extern uint MapVirtualKey(uint code, uint mapType);
         [DllImport("kernel32.dll")] private static extern uint SetThreadExecutionState(uint flags);
 
         public IdleManager()
@@ -106,11 +107,12 @@ namespace Working
             if (HasRecentRealInput(KeepAliveInputGrace))
                 return;
 
-            // 必须带扩展键扫描码，否则 scan=0 时部分终端（如 Xshell）会把 0x7E 当成 ~ 字符
-            keybd_event(VK_F15, ScanF15, KeyeventfExtendedkey, 0);
-            keybd_event(VK_F15, ScanF15, KeyeventfExtendedkey | KeyeventfKeyup, 0);
+            // F24：普通键盘无实体键，且不会像 F15(0x7E) 被 Xshell 当成 ~ 字符
+            byte scan = (byte)MapVirtualKey(VK_F24, MAPVK_VK_TO_VSC);
+            keybd_event(VK_F24, scan, KeyeventfExtendedkey, 0);
+            keybd_event(VK_F24, scan, KeyeventfExtendedkey | KeyeventfKeyup, 0);
             MarkSynthetic();
-            AppLog.Print("防休眠", "F15");
+            AppLog.Print("防休眠", "F24");
         }
 
         private void OnTick()
@@ -240,7 +242,7 @@ namespace Working
             _lastInputTick = _syntheticTick;
         }
 
-        /// <summary>近期是否有真实用户键鼠输入（排除本程序模拟的 F15）。</summary>
+        /// <summary>近期是否有真实用户键鼠输入（排除本程序模拟的 F24）。</summary>
         private bool HasRecentRealInput(TimeSpan threshold)
         {
             uint tick = QueryInputTick();
