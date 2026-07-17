@@ -77,7 +77,7 @@ namespace Working
                 ? $"调暗阈值默认 {DefaultThreshold.TotalMinutes:F0} 分钟"
                 : $"调暗阈值 {sys.Value.TotalSeconds:F0}s（跟随系统电源）");
 
-            ApplyPowerState();
+            UpdatePowerState(_inWorkHours?.Invoke() == true);
             SetPollInterval();
             _timer.Start();
             AppLog.Print("空闲", $"已启用，检测间隔 {_timer.Interval} ms");
@@ -119,6 +119,8 @@ namespace Working
         {
             if (!_enabled) return;
 
+            bool inWorkHours = _inWorkHours?.Invoke() == true;
+
             if (_pendingLocalRestore)
             {
                 _pendingLocalRestore = false;
@@ -127,7 +129,6 @@ namespace Working
                 if (_brightness.IsDimmed)
                 {
                     _brightness.Restore();
-                    ApplyPowerState();
                     if (_brightness.IsDimmed)
                     {
                         AppLog.Print("空闲", "本机解锁，恢复亮度失败，将重试");
@@ -140,13 +141,11 @@ namespace Working
                 }
             }
 
-            bool inWorkHours = _inWorkHours?.Invoke() == true;
             if (!inWorkHours)
             {
                 if (_brightness.IsDimmed)
                 {
                     _brightness.Restore();
-                    ApplyPowerState();
                     AppLog.Print("空闲", "已离开工作时间段，恢复亮度");
                 }
                 else if (_wasInWorkHours)
@@ -154,9 +153,21 @@ namespace Working
                     AppLog.Print("空闲", "已离开工作时间段");
                 }
 
+                // 交还系统电源计划，允许系统超时息屏
+                UpdatePowerState(false);
                 _wasInWorkHours = false;
                 SetPollInterval();
                 return;
+            }
+
+            // 刚进入生效时段：重置空闲计时，并重新声明保持显示（否则可能立刻调暗 / 长时间无 ES_DISPLAY_REQUIRED）
+            if (!_wasInWorkHours)
+            {
+                _lastInputTick = QueryInputTick();
+                _lastActivity = DateTime.UtcNow;
+                _hasSynthetic = false;
+                UpdatePowerState(true);
+                AppLog.Print("空闲", "已进入工作时间段");
             }
 
             _wasInWorkHours = true;
@@ -268,6 +279,15 @@ namespace Working
             // DDC 可用时保持显示输出，由程序调暗亮度而非交给系统处理
             if (_canDim) f |= ES_DISPLAY_REQUIRED;
             SetThreadExecutionState(f);
+        }
+
+        /// <summary>生效时段内保持显示/系统唤醒；时段外交还系统电源计划，允许超时息屏。</summary>
+        private void UpdatePowerState(bool inWorkHours)
+        {
+            if (inWorkHours)
+                ApplyPowerState();
+            else
+                SetThreadExecutionState(ES_CONTINUOUS);
         }
 
         private void SetPollInterval()
