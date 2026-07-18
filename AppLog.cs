@@ -5,7 +5,7 @@ namespace Working
 {
     internal static class AppLog
     {
-        internal static bool Enabled = true;
+        internal static bool Enabled = false;
 
         [DllImport("kernel32.dll")] private static extern bool AllocConsole();
         [DllImport("kernel32.dll")] private static extern bool AttachConsole(int pid);
